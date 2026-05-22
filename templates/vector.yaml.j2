@@ -1,0 +1,12 @@
+sources:
+  demo_source:
+    type: http_server
+    address: 0.0.0.0:{{ vector_http_port }}
+
+sinks:
+  console_sink:
+    type: console
+    inputs:
+      - demo_source
+    encoding:
+      codec: json

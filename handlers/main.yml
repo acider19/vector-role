@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT-0
+---
+# handlers file for vector-role
+- name: Restart vector
+  ansible.builtin.systemd:
+    name: vector
+    # на всякий случай перечитывает юниты перед перезапуском
+    daemon_reload: true
+    # перезапускает сервис
+    state: restarted
