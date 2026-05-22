@@ -7,100 +7,54 @@
     state: directory
     mode: '0755'
 - name: Download and unpack Vector archive
-  # Модуль unarchive умеет скачивать архив из сети и распаковывать его на целевой машине
   ansible.builtin.unarchive:
-    # URL архива для ARM64 (aarch64). Версия и архитектура зафиксированы явно.
     src: "https://packages.timber.io/vector/{{ vector_version }}/vector-{{ vector_version }}-{{ vector_arch }}.tar.gz"
-    # директория, куда будет распакован архив
     dest: "{{ vector_install_dir }}"
-    # указывает, что источник (src) находится не на управляющей машине, а в сети
     remote_src: true
-    # передаётся утилите tar. Убирает один верхний уровень вложенности архива, чтобы содержимое оказалось сразу в /opt/vector, а не в /opt/vector/vector-...
     extra_opts:
       - --strip-components=2
-    # защита от повторного выполнения.
-    # Если этот файл уже существует, задача не будет выполнена.
-    # Обеспечивает идемпотентность: при повторном запуске архив не будет перезаписан.
     creates: /opt/vector/bin/vector
 
-# Создание директории для конфигурации
 - name: Ensure configuration directory exists
-  # Модуль file управляет файлами и директориями.
   ansible.builtin.file:
-    # директория, где будет храниться конфигурация Vector.
     path: "{{ vector_config_dir }}"
-    # гарантирует, что путь является директорией (создаст, если отсутствует)
     state: directory
-    # права доступа: владелец — чтение/запись/исполнение, группа и остальные — чтение/исполнение
     mode: '0755'
 
-# создание группы vector
 - name: Ensure Vector group exists
-  # Модуль group управляет группами пользователей в системе.
   ansible.builtin.group:
-    # имя системной группы, от которой будет запускаться сервис Vector.
     name: "{{ vector_group }}"
-    # создаёт группу как системную, без обычного пользовательского назначения.
     system: true
 
-# создание пользователя vector
 - name: Ensure Vector user exists
-  # Модуль user управляет пользователями в системе.
   ansible.builtin.user:
-    # имя пользователя должно совпадать с User=vector в systemd unit-файле Vector.
     name: "{{ vector_user }}"
-    # основная группа пользователя.
     group: "{{ vector_group }}"
-    # создаёт пользователя как системного.
     system: true
-    # запрещает интерактивный вход под этим пользователем.
     shell: /usr/sbin/nologin
-    # домашняя директория для сервисного пользователя не нужна.
     create_home: false
 
-# создание директорию для служебных данных Vector
 - name: Ensure Vector data directory exists
-  # Модуль file создаёт директорию для служебных данных Vector.
   ansible.builtin.file:
-    # стандартная директория data_dir, которую Vector проверяет при запуске.
     path: "{{ vector_data_dir }}"
-    # гарантирует, что путь является директорией.
     state: directory
-    # владелец должен совпадать с пользователем, от которого запускается сервис.
     owner: "{{ vector_user }}"
-    # группа должна совпадать с группой, от которой запускается сервис.
     group: "{{ vector_group }}"
-    # права доступа: владелец может читать/писать/исполнять, остальные — читать/исполнять.
     mode: '0755'
 
-# Деплой конфигурации Vector через Jinja2-шаблон
 - name: Deploy Vector configuration from template
-  # Модуль template берёт файл-шаблон (Jinja2) с управляющей машины, обрабатывает его и записывает результат на целевую машину
   ansible.builtin.template:
-    # путь к шаблону относительно директории templates/
     src: vector.yaml.j2
-    # целевой путь на хосте
     dest: "{{ vector_config_dir }}/vector.yaml"
-    # права: владелец может читать/писать, группа и остальные — только читать
     mode: '0644'
-  # ключевой момент.
-  # Если конфигурация изменилась (файл создан или обновлён), Ansible отправит уведомление обработчику restart vector.
-  # Если файл не изменился, уведомления не будет, и перезапуск сервиса не произойдёт.
   notify: Restart vector
 
-# Установка systemd-юнита из архива
 - name: Install systemd unit from archive
-  # Модуль copy копирует файлы
   ansible.builtin.copy:
-    # источник на целевой машине (готовый юнит из архива Vector).
     src: /opt/vector/etc/systemd/vector.service
-    # стандартный путь для пользовательских systemd-юнитов.
     dest: /etc/systemd/system/vector.service
-    # указывает, что src находится на удалённом хосте, а не на управляющей машине
     remote_src: true
-    # права доступа
     mode: '0644'
-  # при изменении юнита (например, при обновлении Vector или первом копировании) уведомляет обработчик для перезапуска сервиса с новой конфигурацией юнита
   notify: Restart vector
 
 - name: Create symlink to vector binary in /usr/bin
@@ -109,15 +63,9 @@
     dest: /usr/bin/vector
     state: link
 
-# Запуск и включение сервиса Vector
 - name: Enable and start Vector service
-  # Модуль systemd управляет службами systemd
   ansible.builtin.systemd:
-    # имя сервиса (должен соответствовать названию unit-файла vector.service)
     name: vector
-    # выполняет systemctl daemon-reload, чтобы systemd перечитал новые или изменённые юниты
     daemon_reload: true
-    # добавляет сервис в автозагрузку (аналог systemctl enable)
     enabled: true
-    # гарантирует, что сервис запущен. Если он уже работает, ничего не меняется
     state: started

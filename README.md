@@ -22,8 +22,6 @@ Role Variables
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
     - hosts: servers
       roles:
          - { role: vector-role, vector_version: "0.55.0", vector_arch: "aarch64-unknown-linux-musl", vector_http_port: 8080 }
