@@ -5,3 +5,6 @@
     name: vector
     daemon_reload: true
     state: restarted
+  when:
+    - ansible_facts['service_mgr'] == 'systemd'
+    - not (ansible_facts['virtualization_type'] == 'docker' and ansible_facts['virtualization_role'] == 'guest')

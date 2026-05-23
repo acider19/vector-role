@@ -1,0 +1,68 @@
+---
+- name: Verify Vector installation
+  hosts: molecule
+  gather_facts: yes
+  tasks:
+    - name: Check Vector binary
+      ansible.builtin.stat:
+        path: /opt/vector/bin/vector
+      register: vector_binary
+    - name: Assert binary exists and executable
+      ansible.builtin.assert:
+        that:
+          - vector_binary.stat.exists
+          - vector_binary.stat.executable
+
+    - name: Check symlink
+      ansible.builtin.stat:
+        path: /usr/bin/vector
+      register: symlink
+    - name: Assert symlink is correct
+      ansible.builtin.assert:
+        that:
+          - symlink.stat.islnk
+          - symlink.stat.lnk_source == "/opt/vector/bin/vector"
+
+    - name: Check config file
+      ansible.builtin.stat:
+        path: /etc/vector/vector.yaml
+      register: config_file
+    - name: Assert config exists
+      ansible.builtin.assert:
+        that: config_file.stat.exists
+
+    - name: Check user and group
+      ansible.builtin.getent:
+        database: passwd
+        key: vector
+      register: vector_user
+    - name: Check group
+      ansible.builtin.getent:
+        database: group
+        key: vector
+      register: vector_group
+    - name: Assert user and group
+      ansible.builtin.assert:
+        that:
+          - vector_user is success
+          - vector_group is success
+
+    - name: Check if systemd is available
+      ansible.builtin.command: command -v systemctl
+      register: has_systemctl
+      failed_when: false
+      changed_when: false
+
+    - name: Check service state (if systemd)
+      ansible.builtin.service_facts:
+      when: has_systemctl.rc == 0
+
+    - name: Assert service is running (if systemd and not docker)
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['vector.service'] is defined
+          - ansible_facts.services['vector.service'].state == 'running'
+        fail_msg: "Vector service not running"
+      when:
+        - has_systemctl.rc == 0
+        - ansible_facts.virtualization_type != 'docker'

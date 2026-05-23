@@ -3,6 +3,8 @@ galaxy_info:
   author: Muravskiy Artyom
   description: Installs and configures Vector
   company: Netology
+  role_name: vector_role
+  namespace: mav
 
   # If the issue tracker for your role is not on github, uncomment the
   # next line and provide a value

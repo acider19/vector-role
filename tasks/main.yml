@@ -62,6 +62,7 @@
     src: /opt/vector/bin/vector
     dest: /usr/bin/vector
     state: link
+    force: true
 
 - name: Enable and start Vector service
   ansible.builtin.systemd:
@@ -69,3 +70,6 @@
     daemon_reload: true
     enabled: true
     state: started
+  when:
+    - ansible_facts['service_mgr'] == 'systemd'
+    - not (ansible_facts['virtualization_type'] == 'docker' and ansible_facts['virtualization_role'] == 'guest')
