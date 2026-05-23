@@ -1,4 +1,4 @@
-vector-role
+vector_role
 =========
 
 Ansible role for installing and configuring Vector.
