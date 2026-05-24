@@ -1,0 +1,54 @@
+---
+- name: Verify Vector installation
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Check Vector binary
+      ansible.builtin.stat:
+        path: /opt/vector/bin/vector
+      register: vector_binary
+
+    - name: Assert binary exists and executable
+      ansible.builtin.assert:
+        that:
+          - vector_binary.stat.exists
+          - vector_binary.stat.executable
+
+    - name: Check symlink
+      ansible.builtin.stat:
+        path: /usr/bin/vector
+      register: vector_symlink
+
+    - name: Assert symlink is correct
+      ansible.builtin.assert:
+        that:
+          - vector_symlink.stat.islnk
+          - vector_symlink.stat.lnk_source == "/opt/vector/bin/vector"
+
+    - name: Check config file
+      ansible.builtin.stat:
+        path: /etc/vector/vector.yaml
+      register: vector_config
+
+    - name: Assert config exists
+      ansible.builtin.assert:
+        that:
+          - vector_config.stat.exists
+
+    - name: Check Vector user
+      ansible.builtin.getent:
+        database: passwd
+        key: vector
+      register: vector_user
+
+    - name: Check Vector group
+      ansible.builtin.getent:
+        database: group
+        key: vector
+      register: vector_group
+
+    - name: Assert user and group exist
+      ansible.builtin.assert:
+        that:
+          - vector_user is success
+          - vector_group is success
